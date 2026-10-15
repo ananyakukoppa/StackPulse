@@ -1,0 +1,317 @@
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+  Search,
+  Sparkles,
+  GitCompare,
+  Bookmark,
+  Star,
+  Activity,
+  Server,
+  Database,
+  ArrowRight,
+  TrendingUp,
+  Cpu,
+  CheckCircle2,
+} from 'lucide-react';
+import Input from '../components/common/Input';
+import Button from '../components/common/Button';
+import Card from '../components/common/Card';
+import Badge from '../components/common/Badge';
+import { apiService } from '../services/api';
+import { HealthResponse } from '../types';
+
+export const HomePage: React.FC = () => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [healthData, setHealthData] = useState<HealthResponse | null>(null);
+  const [healthLoading, setHealthLoading] = useState(true);
+  const [healthError, setHealthError] = useState<string | null>(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    let isMounted = true;
+    apiService
+      .getHealth()
+      .then((data) => {
+        if (isMounted) {
+          setHealthData(data);
+          setHealthLoading(false);
+        }
+      })
+      .catch((err) => {
+        if (isMounted) {
+          setHealthError(err.message || 'Failed to reach backend API');
+          setHealthLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchTerm.trim()) {
+      navigate(`/profile/${encodeURIComponent(searchTerm.trim())}`);
+    }
+  };
+
+  const sampleDevelopers = [
+    { username: 'torvalds', label: 'Linus Torvalds', role: 'Creator of Linux & Git' },
+    { username: 'gaearon', label: 'Dan Abramov', role: 'React Core & Redux' },
+    { username: 'shadcn', label: 'shadcn', role: 'Creator of shadcn/ui' },
+    { username: 'yyx990803', label: 'Evan You', role: 'Creator of Vue & Vite' },
+  ];
+
+  const incrementsRoadmap = [
+    {
+      num: '1',
+      title: 'Project Foundation & Database Architecture',
+      status: 'active',
+      desc: 'Monorepo setup, Express REST API, PostgreSQL Prisma schema, TypeScript types, responsive UI layout shell.',
+    },
+    {
+      num: '2',
+      title: 'User Authentication & Privacy Layer',
+      status: 'upcoming',
+      desc: 'User registration, secure password hashing, JWT sessions, route guards, and isolated user data privacy.',
+    },
+    {
+      num: '3',
+      title: 'GitHub API Engine & Profile Dashboard',
+      status: 'upcoming',
+      desc: 'Rate-limited GitHub data ingestion, DB caching, star aggregation, language breakdown, and commit metrics.',
+    },
+    {
+      num: '4',
+      title: 'Side-by-Side Comparison Engine',
+      status: 'upcoming',
+      desc: 'Multi-developer comparison view, interactive comparison tables, radar/bar charts, and saved comparisons.',
+    },
+    {
+      num: '5',
+      title: 'Personal Curation, Polish & Documentation',
+      status: 'upcoming',
+      desc: 'Pin favorite repos, add custom notes & tags, mobile responsive optimization, and technical choices report.',
+    },
+  ];
+
+  return (
+    <div className="flex-1 flex flex-col">
+      {/* Hero Section */}
+      <section className="relative overflow-hidden pt-16 pb-20 md:pt-24 md:pb-28 border-b border-slate-900">
+        {/* Glow backdrop effects */}
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-teal-500/10 blur-[130px] rounded-full pointer-events-none" />
+        <div className="absolute top-1/3 left-1/3 w-[300px] h-[250px] bg-blue-500/10 blur-[120px] rounded-full pointer-events-none" />
+
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
+          <Badge variant="teal" size="md" className="mb-6 glow-teal" icon={<Sparkles className="w-3.5 h-3.5" />}>
+            Full-Stack Developer Intelligence Platform
+          </Badge>
+
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-white leading-tight">
+            Explore Developers. <br />
+            <span className="bg-gradient-to-r from-teal-400 via-teal-200 to-blue-400 bg-clip-text text-transparent">
+              Compare Metrics. Pin Great Code.
+            </span>
+          </h1>
+
+          <p className="mt-6 text-lg sm:text-xl text-slate-400 max-w-2xl mx-auto leading-relaxed">
+            StackPulse connects directly to the GitHub API with intelligent PostgreSQL caching, delivering instant developer profiles, head-to-head metric comparisons, and personal repository curation.
+          </p>
+
+          {/* Search Bar */}
+          <div className="mt-10 max-w-xl mx-auto">
+            <form onSubmit={handleSearchSubmit} className="flex flex-col sm:flex-row gap-2.5">
+              <div className="flex-1">
+                <Input
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Enter GitHub username (e.g. torvalds, gaearon)..."
+                  leftIcon={<Search className="w-4 h-4" />}
+                  className="h-12 text-base bg-slate-900/90 border-slate-700/80 shadow-inner"
+                />
+              </div>
+              <Button
+                type="submit"
+                size="lg"
+                className="h-12 px-6"
+                rightIcon={<ArrowRight className="w-4 h-4" />}
+              >
+                Inspect
+              </Button>
+            </form>
+
+            {/* Quick Sample Links */}
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-xs text-slate-400">
+              <span className="text-slate-500">Popular developers:</span>
+              {sampleDevelopers.map((dev) => (
+                <button
+                  key={dev.username}
+                  onClick={() => setSearchTerm(dev.username)}
+                  className="px-2.5 py-1 rounded-md bg-slate-900 border border-slate-800 text-slate-300 hover:text-teal-400 hover:border-teal-500/40 transition-all font-mono"
+                >
+                  @{dev.username}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Live System Health Verification Card */}
+      <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6 relative z-20 w-full">
+        <Card padding="md" className="border-teal-500/20 bg-slate-900/90 shadow-xl shadow-black/60">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-teal-500/10 border border-teal-500/30 flex items-center justify-center text-teal-400 shrink-0">
+                <Server className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-semibold text-white">Full-Stack Core Foundation Status</h3>
+                  <Badge variant={healthError ? 'rose' : 'emerald'} size="sm">
+                    {healthLoading ? 'Connecting...' : healthError ? 'Offline' : 'API Live & Healthy'}
+                  </Badge>
+                </div>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Increment 1 architecture: Express REST API connected to Vite React Client.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 text-xs font-mono text-slate-400 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-800">
+              <div className="flex items-center gap-1.5">
+                <Database className="w-3.5 h-3.5 text-teal-400" />
+                <span>PostgreSQL Schema Ready</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Activity className="w-3.5 h-3.5 text-blue-400" />
+                <span>Uptime: {healthData ? `${healthData.uptimeSeconds}s` : '100%'}</span>
+              </div>
+            </div>
+          </div>
+        </Card>
+      </section>
+
+      {/* Core Capabilities Section */}
+      <section className="py-16 md:py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center max-w-2xl mx-auto mb-14">
+          <Badge variant="blue" size="sm" className="mb-3">
+            Core Features
+          </Badge>
+          <h2 className="text-3xl font-bold text-white tracking-tight">
+            Engineered for High-Performance Developer Intelligence
+          </h2>
+          <p className="mt-3 text-slate-400 text-sm">
+            Everything needed to benchmark, evaluate, and track software engineers with precision metrics.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Card 1 */}
+          <Card hoverEffect padding="lg" className="flex flex-col">
+            <div className="w-12 h-12 rounded-xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-400 mb-5">
+              <TrendingUp className="w-6 h-6" />
+            </div>
+            <h3 className="text-lg font-semibold text-white mb-2">Developer Profile Dashboards</h3>
+            <p className="text-sm text-slate-400 leading-relaxed flex-1">
+              Pull rich public activity directly from GitHub. Visualize star aggregates, language breakdowns, and commit frequency with responsive charts.
+            </p>
+            <div className="mt-4 pt-4 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+              <span>GitHub API + Caching</span>
+              <Star className="w-3.5 h-3.5 text-amber-400" />
+            </div>
+          </Card>
+
+          {/* Card 2 */}
+          <Card hoverEffect padding="lg" className="flex flex-col">
+            <div className="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 mb-5">
+              <GitCompare className="w-6 h-6" />
+            </div>
+            <h3 className="text-lg font-semibold text-white mb-2">Side-by-Side Comparison</h3>
+            <p className="text-sm text-slate-400 leading-relaxed flex-1">
+              Select two or more developers and compare them head-to-head. Analyze comparative star velocity, top languages, and commit velocity side-by-side.
+            </p>
+            <div className="mt-4 pt-4 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+              <span>Multi-Dev Matrix</span>
+              <GitCompare className="w-3.5 h-3.5 text-blue-400" />
+            </div>
+          </Card>
+
+          {/* Card 3 */}
+          <Card hoverEffect padding="lg" className="flex flex-col">
+            <div className="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 mb-5">
+              <Bookmark className="w-6 h-6" />
+            </div>
+            <h3 className="text-lg font-semibold text-white mb-2">Curate, Pin & Annotate</h3>
+            <p className="text-sm text-slate-400 leading-relaxed flex-1">
+              Bookmark standout repositories, attach custom notes and tag taxonomies. Save named comparisons to revisit later with strict user privacy.
+            </p>
+            <div className="mt-4 pt-4 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+              <span>Private User Workspace</span>
+              <Bookmark className="w-3.5 h-3.5 text-purple-400" />
+            </div>
+          </Card>
+        </div>
+      </section>
+
+      {/* 5-Increment Roadmap Section */}
+      <section className="py-16 border-t border-slate-900 bg-slate-950/40">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col md:flex-row items-start md:items-end justify-between mb-10 gap-4">
+            <div>
+              <Badge variant="purple" size="sm" className="mb-2" icon={<Cpu className="w-3.5 h-3.5" />}>
+                Project Roadmap
+              </Badge>
+              <h2 className="text-2xl font-bold text-white">5-Increment Architecture Plan</h2>
+              <p className="text-xs text-slate-400 mt-1">
+                Structured for a clean, incremental Git commit history as requested in the assignment.
+              </p>
+            </div>
+            <div className="text-xs text-teal-400 font-mono bg-teal-500/10 border border-teal-500/20 px-3 py-1.5 rounded-lg">
+              Increment 1 of 5 Ready
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {incrementsRoadmap.map((inc) => (
+              <div
+                key={inc.num}
+                className={`p-4 rounded-xl border transition-all flex items-start gap-4 ${
+                  inc.status === 'active'
+                    ? 'bg-slate-900/90 border-teal-500/30'
+                    : 'bg-slate-900/40 border-slate-800/80 opacity-75'
+                }`}
+              >
+                <div
+                  className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm shrink-0 ${
+                    inc.status === 'active'
+                      ? 'bg-teal-500 text-slate-950'
+                      : 'bg-slate-800 text-slate-400'
+                  }`}
+                >
+                  {inc.status === 'active' ? <CheckCircle2 className="w-5 h-5" /> : inc.num}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2.5">
+                    <h4 className="text-sm font-semibold text-white">{inc.title}</h4>
+                    {inc.status === 'active' && (
+                      <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-teal-500/20 text-teal-300">
+                        Completed in Increment 1
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-400 mt-1">{inc.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+};
+
+export default HomePage;

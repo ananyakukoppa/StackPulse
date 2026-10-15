@@ -1,0 +1,32 @@
+{
+  "name": "stackpulse-workspace",
+  "version": "1.0.0",
+  "description": "StackPulse - Developer intelligence, profile analytics, and head-to-head GitHub developer comparison platform.",
+  "private": true,
+  "scripts": {
+    "install:all": "npm --prefix server install && npm --prefix client install",
+    "dev": "concurrently -n \"server,client\" -c \"blue,green\" \"npm --prefix server run dev\" \"npm --prefix client run dev\"",
+    "dev:server": "npm --prefix server run dev",
+    "dev:client": "npm --prefix client run dev",
+    "build": "npm --prefix server run build && npm --prefix client run build",
+    "build:server": "npm --prefix server run build",
+    "build:client": "npm --prefix client run build",
+    "start": "npm --prefix server run start",
+    "prisma:generate": "npm --prefix server run prisma:generate",
+    "prisma:migrate": "npm --prefix server run prisma:migrate",
+    "prisma:studio": "npm --prefix server run prisma:studio"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  },
+  "keywords": [
+    "stackpulse",
+    "github-analytics",
+    "react",
+    "typescript",
+    "postgresql",
+    "developer-comparison"
+  ],
+  "author": "StackPulse Team",
+  "license": "MIT"
+}

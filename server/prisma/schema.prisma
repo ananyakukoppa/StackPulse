@@ -1,0 +1,141 @@
+// StackPulse - PostgreSQL Database Schema
+// Fully relational data model reflecting users, GitHub developer intelligence,
+// repository metrics, side-by-side comparisons, and user pins/notes.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String        @id @default(uuid())
+  email        String        @unique
+  passwordHash String        @map("password_hash")
+  name         String?
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  comparisons  Comparison[]
+  pins         Pin[]
+
+  @@map("users")
+}
+
+model Developer {
+  id              String                @id @default(uuid())
+  githubUsername  String                @unique @map("github_username")
+  name            String?
+  avatarUrl       String                @map("avatar_url")
+  bio             String?
+  company         String?
+  location        String?
+  blog            String?
+  twitterUsername String?               @map("twitter_username")
+  followers       Int                   @default(0)
+  following       Int                   @default(0)
+  publicRepos     Int                   @default(0) @map("public_repos")
+  publicGists     Int                   @default(0) @map("public_gists")
+  totalStars      Int                   @default(0) @map("total_stars")
+  fetchedAt       DateTime              @default(now()) @map("fetched_at")
+  createdAt       DateTime              @default(now()) @map("created_at")
+  updatedAt       DateTime              @updatedAt @map("updated_at")
+
+  repositories    Repository[]
+  comparisonDevs  ComparisonDeveloper[]
+
+  @@index([githubUsername])
+  @@map("developers")
+}
+
+model Repository {
+  id              String               @id @default(uuid())
+  developerId     String               @map("developer_id")
+  githubRepoId    Int?                 @map("github_repo_id")
+  name            String
+  fullName        String               @map("full_name")
+  description     String?
+  htmlUrl         String               @map("html_url")
+  stars           Int                  @default(0)
+  forks           Int                  @default(0)
+  watchers        Int                  @default(0)
+  openIssues      Int                  @default(0) @map("open_issues")
+  primaryLanguage String?              @map("primary_language")
+  defaultBranch   String               @default("main") @map("default_branch")
+  isFork          Boolean              @default(false) @map("is_fork")
+  pushedAt        DateTime?            @map("pushed_at")
+  createdAt       DateTime             @default(now()) @map("created_at")
+  updatedAt       DateTime             @updatedAt @map("updated_at")
+
+  developer       Developer            @relation(fields: [developerId], references: [id], onDelete: Cascade)
+  languages       RepositoryLanguage[]
+  pins            Pin[]
+
+  @@index([developerId])
+  @@index([stars(sort: Desc)])
+  @@index([primaryLanguage])
+  @@map("repos")
+}
+
+model RepositoryLanguage {
+  id           String     @id @default(uuid())
+  repositoryId String     @map("repository_id")
+  language     String
+  bytes        Int
+
+  repository   Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+
+  @@index([repositoryId])
+  @@index([language])
+  @@map("repository_languages")
+}
+
+model Comparison {
+  id          String                @id @default(uuid())
+  userId      String                @map("user_id")
+  name        String
+  description String?
+  createdAt   DateTime              @default(now()) @map("created_at")
+  updatedAt   DateTime              @updatedAt @map("updated_at")
+
+  user        User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  developers  ComparisonDeveloper[]
+
+  @@index([userId])
+  @@map("comparisons")
+}
+
+model ComparisonDeveloper {
+  id           String     @id @default(uuid())
+  comparisonId String     @map("comparison_id")
+  developerId  String     @map("developer_id")
+
+  comparison   Comparison @relation(fields: [comparisonId], references: [id], onDelete: Cascade)
+  developer    Developer  @relation(fields: [developerId], references: [id], onDelete: Cascade)
+
+  @@unique([comparisonId, developerId])
+  @@index([comparisonId])
+  @@index([developerId])
+  @@map("comparison_devs")
+}
+
+model Pin {
+  id           String     @id @default(uuid())
+  userId       String     @map("user_id")
+  repositoryId String     @map("repository_id")
+  note         String?
+  tags         String     @default("[]") // JSON string of tags: e.g. ["infra", "starred"]
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  repository   Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, repositoryId])
+  @@index([userId])
+  @@index([repositoryId])
+  @@map("pins")
+}
