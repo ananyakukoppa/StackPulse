@@ -25,10 +25,14 @@ import Badge from '../components/common/Badge';
 import Button from '../components/common/Button';
 import Input from '../components/common/Input';
 import { apiService } from '../services/api';
-import { DeveloperProfile } from '../types';
+import { DeveloperProfile, RepositorySummary } from '../types';
+import { usePin } from '../context/PinContext';
+import { useAuth } from '../context/AuthContext';
 
 export const ProfilePage: React.FC = () => {
   const { username } = useParams<{ username: string }>();
+  const { isPinned, togglePin } = usePin();
+  const { isAuthenticated } = useAuth();
   const [profile, setProfile] = useState<DeveloperProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -117,6 +121,29 @@ export const ProfilePage: React.FC = () => {
     const diffMonths = Math.floor(diffDays / 30);
     if (diffMonths < 12) return `${diffMonths}mo ago`;
     return `${Math.floor(diffMonths / 12)}y ago`;
+  };
+
+  const handleTogglePin = async (repo: RepositorySummary) => {
+    if (!profile) return;
+    if (!isAuthenticated) {
+      alert('Please sign in to pin repositories to your workspace.');
+      return;
+    }
+
+    try {
+      await togglePin({
+        name: repo.name,
+        fullName: repo.fullName,
+        htmlUrl: repo.htmlUrl,
+        developerUsername: profile.githubUsername,
+        description: repo.description,
+        stars: repo.stars,
+        forks: repo.forks,
+        primaryLanguage: repo.primaryLanguage,
+      });
+    } catch (err: any) {
+      alert(err.message || 'Failed to toggle pin');
+    }
   };
 
   const formatNumber = (num: number) => {
@@ -454,10 +481,15 @@ export const ProfilePage: React.FC = () => {
                     </a>
 
                     <button
-                      title="Pin repository (Increment 4/5)"
-                      className="p-1.5 rounded-lg text-slate-500 hover:text-amber-400 hover:bg-slate-800 transition-colors shrink-0"
+                      onClick={() => handleTogglePin(repo)}
+                      title={isPinned(repo.fullName) ? 'Unpin repository' : 'Pin repository to workspace'}
+                      className={`p-1.5 rounded-lg transition-colors shrink-0 ${
+                        isPinned(repo.fullName)
+                          ? 'text-amber-400 bg-amber-500/10 hover:bg-amber-500/20'
+                          : 'text-slate-500 hover:text-amber-400 hover:bg-slate-800'
+                      }`}
                     >
-                      <Bookmark className="w-4 h-4" />
+                      <Bookmark className={`w-4 h-4 ${isPinned(repo.fullName) ? 'fill-amber-400' : ''}`} />
                     </button>
                   </div>
 

@@ -1,5 +1,3 @@
-// Client-side TypeScript definitions for StackPulse
-
 export interface User {
   id: string;
   email: string;
@@ -62,23 +60,48 @@ export interface RepositorySummary {
   size?: number;
 }
 
-export interface Comparison {
-  id: string;
-  userId: string;
-  name: string;
-  description: string | null;
-  createdAt: string;
-  developers: DeveloperProfile[];
+export interface ComparisonMatrixItem {
+  developer: DeveloperProfile;
+  isLeaderInStars: boolean;
+  isLeaderInRepos: boolean;
+  isLeaderInFollowers: boolean;
+  isLeaderInForks: boolean;
 }
 
-export interface Pin {
+export interface ComparisonMatrix {
+  items: ComparisonMatrixItem[];
+  commonLanguages: string[];
+  totalCombinedStars: number;
+  totalCombinedRepos: number;
+}
+
+export interface SavedComparison {
+  id: string;
+  name: string;
+  description: string | null;
+  developerUsernames: string[];
+  createdAt: string;
+}
+
+export interface PinItem {
   id: string;
   userId: string;
   repositoryId: string;
   note: string | null;
   tags: string[];
   createdAt: string;
-  repository?: RepositorySummary;
+  updatedAt: string;
+  repository: {
+    id: string;
+    name: string;
+    fullName: string;
+    description: string | null;
+    htmlUrl: string;
+    stars: number;
+    forks: number;
+    primaryLanguage: string | null;
+    developerUsername: string;
+  };
 }
 
 export interface HealthResponse {

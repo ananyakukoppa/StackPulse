@@ -4,7 +4,6 @@ import {
   Search,
   GitCompare,
   Bookmark,
-  Star,
   Activity,
   Server,
   Database,
@@ -73,20 +72,20 @@ export const HomePage: React.FC = () => {
     {
       num: '2',
       title: 'Authentication & GitHub Profile Dashboard Engine',
-      status: 'active',
+      status: 'completed',
       desc: 'Bcrypt hashing, JWT sessions, route guards, live GitHub API ingestion, PostgreSQL caching with TTL, star aggregation, and language breakdown.',
     },
     {
       num: '3',
-      title: 'Side-by-Side Comparison Engine',
-      status: 'upcoming',
-      desc: 'Multi-developer comparison view, interactive comparison tables, radar/bar charts, and saved comparisons.',
+      title: 'Side-by-Side Comparison Engine & Analytics',
+      status: 'completed',
+      desc: 'Multi-developer comparison view, interactive comparison tables, comparative star volume bars, and saved comparisons CRUD.',
     },
     {
       num: '4',
-      title: 'Personal Curation, Polish & Documentation',
-      status: 'upcoming',
-      desc: 'Pin favorite repos, add custom notes & tags, mobile responsive optimization, and technical choices report.',
+      title: 'Personal Curation, Privacy, Polish & Documentation',
+      status: 'completed',
+      desc: 'Pin favorite repos, add custom notes & tags, user privacy isolation, responsive mobile optimization, and technical choices report.',
     },
   ];
 
@@ -200,7 +199,12 @@ export const HomePage: React.FC = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Card 1 */}
-          <Card hoverEffect padding="lg" className="flex flex-col">
+          <Card
+            hoverEffect
+            padding="lg"
+            className="flex flex-col"
+            onClick={() => navigate('/profile/torvalds')}
+          >
             <div className="w-12 h-12 rounded-xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-400 mb-5">
               <TrendingUp className="w-6 h-6" />
             </div>
@@ -209,13 +213,18 @@ export const HomePage: React.FC = () => {
               Pull rich public activity directly from GitHub. Visualize star aggregates, language breakdowns, and commit frequency with responsive charts.
             </p>
             <div className="mt-4 pt-4 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
-              <span>GitHub API + Caching</span>
-              <Star className="w-3.5 h-3.5 text-amber-400" />
+              <span>View @torvalds</span>
+              <ArrowRight className="w-3.5 h-3.5 text-teal-400" />
             </div>
           </Card>
 
           {/* Card 2 */}
-          <Card hoverEffect padding="lg" className="flex flex-col">
+          <Card
+            hoverEffect
+            padding="lg"
+            className="flex flex-col"
+            onClick={() => navigate('/compare')}
+          >
             <div className="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 mb-5">
               <GitCompare className="w-6 h-6" />
             </div>
@@ -224,13 +233,18 @@ export const HomePage: React.FC = () => {
               Select two or more developers and compare them head-to-head. Analyze comparative star velocity, top languages, and commit velocity side-by-side.
             </p>
             <div className="mt-4 pt-4 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
-              <span>Multi-Dev Matrix</span>
-              <GitCompare className="w-3.5 h-3.5 text-blue-400" />
+              <span>Launch Comparison Matrix</span>
+              <ArrowRight className="w-3.5 h-3.5 text-blue-400" />
             </div>
           </Card>
 
           {/* Card 3 */}
-          <Card hoverEffect padding="lg" className="flex flex-col">
+          <Card
+            hoverEffect
+            padding="lg"
+            className="flex flex-col"
+            onClick={() => navigate('/curations')}
+          >
             <div className="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 mb-5">
               <Bookmark className="w-6 h-6" />
             </div>
@@ -239,8 +253,8 @@ export const HomePage: React.FC = () => {
               Bookmark standout repositories, attach custom notes and tag taxonomies. Save named comparisons to revisit later with strict user privacy.
             </p>
             <div className="mt-4 pt-4 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
-              <span>Private User Workspace</span>
-              <Bookmark className="w-3.5 h-3.5 text-purple-400" />
+              <span>Access Private Workspace</span>
+              <ArrowRight className="w-3.5 h-3.5 text-purple-400" />
             </div>
           </Card>
         </div>

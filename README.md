@@ -1,150 +1,193 @@
-# StackPulse ⚡
+# StackPulse
 
-> **Developer Intelligence, Profile Analytics & Head-to-Head GitHub Developer Comparison Engine**
-> 
-> A full-stack web application engineered with **React, TypeScript, Express, and PostgreSQL** that enables users to inspect GitHub developer profiles, benchmark engineering metrics (total stars, language distribution, commit activity), curate repositories with custom tags and private notes, and save named comparisons.
+StackPulse is a full-stack web application for looking up GitHub developers, inspecting aggregated activity metrics, comparing multiple developers side by side, and curating notable repositories with notes and tags.
 
----
-
-## 📋 Table of Contents
-- [Architecture & Tech Stack](#-architecture--tech-stack)
-- [Technical Decisions & Trade-Offs](#-technical-decisions--trade-offs)
-- [5-Increment Delivery Roadmap](#-5-increment-delivery-roadmap)
-- [Database Schema (PostgreSQL)](#-database-schema-postgresql)
-- [GitHub API & Performance Strategy](#-github-api--performance-strategy)
-- [Prerequisites](#-prerequisites)
-- [Installation & Setup](#-installation--setup)
-- [Environment Variables](#-environment-variables)
-- [Project Structure](#-project-structure)
-- [Increment 1 Release Notes](#-increment-1-release-notes)
+The application implements a REST API backend with PostgreSQL persistence and intelligent caching, paired with a React and TypeScript frontend.
 
 ---
 
-## 🛠️ Architecture & Tech Stack
+## Table of Contents
 
-| Layer | Technologies | Justification |
-| :--- | :--- | :--- |
-| **Frontend** | React 18, TypeScript, Vite, Tailwind CSS, Lucide Icons, React Router | React + TypeScript ensures end-to-end type safety, modular component architecture, and responsive styling. Vite provides sub-second HMR and instant builds. |
-| **Backend** | Node.js, Express, TypeScript | Lightweight, unopinionated REST API framework with asynchronous non-blocking I/O ideal for concurrent third-party API fetches. |
-| **Database** | PostgreSQL, Prisma ORM | Relational schema strictly enforcing foreign keys, cascade deletes, and indexing on developers, repositories, pins, and comparisons. Prisma provides type-safe queries and automated migrations. |
-| **Security** | Helmet, CORS, Express Rate Limit, bcryptjs, JWT | Protects against brute-force attacks, headers vulnerability, and enforces strict user data isolation. |
-| **API Caching** | PostgreSQL Cache Table + Invalidation TTL | Caches developer profiles and repository metrics with a configurable TTL (`DEVELOPER_CACHE_TTL_MS`), safeguarding against GitHub's 60 / 5,000 req/hr rate limits and providing sub-50ms response times. |
-
----
-
-## 💡 Technical Decisions & Trade-Offs
-
-### 1. Dedicated Backend vs. Client-Only GitHub API Fetching
-- **Decision:** Build an Express REST API backend with PostgreSQL persistence rather than querying GitHub directly from the browser.
-- **Rationale:** 
-  1. **Rate Limiting:** Unauthenticated client requests share IP pools and hit GitHub's 60 req/hr limit in minutes. A backend allows authenticated token pooling (5,000 req/hr) and shared database caching.
-  2. **User Privacy:** User pins, custom notes, and saved comparisons must be strictly private and stored securely in PostgreSQL.
-  3. **Heavy Aggregations:** Computing total stars across hundreds of repositories and parsing language bytes across repos is computed once on the server and cached.
-
-### 2. Relational PostgreSQL Schema over Document Store
-- **Decision:** Structured PostgreSQL schema with normalized tables: `users`, `developers`, `repos`, `repository_languages`, `comparisons`, `comparison_devs`, and `pins`.
-- **Rationale:** The domain has relational integrity: comparisons reference multiple developers, pins link specific users to specific repositories, and repositories belong to specific developers. Cascade deletes guarantee clean data lifecycles.
-
-### 3. Progressive 5-Increment Development
-- **Decision:** The codebase is built in 5 distinct increments, establishing a clear, professional Git commit history that illustrates methodical software engineering.
+- [Overview](#overview)
+- [Technology Stack](#technology-stack)
+- [Architecture and Technical Decisions](#architecture-and-technical-decisions)
+- [Database Schema](#database-schema)
+- [GitHub API Integration and Rate Limiting](#github-api-integration-and-rate-limiting)
+- [Prerequisites](#prerequisites)
+- [Installation and Setup](#installation-and-setup)
+- [Environment Variables](#environment-variables)
+- [Running the Application](#running-the-application)
+- [API Endpoints](#api-endpoints)
+- [Project Structure](#project-structure)
 
 ---
 
-## 🗺️ 5-Increment Delivery Roadmap
+## Overview
+
+StackPulse provides four primary functional areas:
+
+1. **User Authentication and Privacy**: Token-based authentication using bcrypt password hashing and JSON Web Tokens. Each user's pinned repositories, personal notes, and saved comparisons remain private to their account.
+2. **Developer Profile Dashboard**: Live retrieval of GitHub public profiles, calculating cumulative star counts, fork totals, language distributions, and commit velocity scores.
+3. **Multi-Developer Comparison Matrix**: Head-to-head comparison of two to five developers, evaluating relative star volume, repository counts, followers, and shared programming languages. Authenticated users can save named comparisons.
+4. **Personal Curation**: Authenticated users can pin repositories, attach searchable tags, and write private notes.
+
+---
+
+## Technology Stack
+
+- **Frontend**: React 18, TypeScript, Vite, Tailwind CSS, Lucide React, React Router 6, Axios
+- **Backend**: Node.js, Express, TypeScript, Prisma ORM, bcryptjs, jsonwebtoken, Zod, Helmet, Express Rate Limit
+- **Database**: PostgreSQL (with Prisma Client and fallback resilience for offline evaluation)
+
+---
+
+## Architecture and Technical Decisions
+
+### 1. Dedicated Backend API with PostgreSQL Caching
+
+Rather than calling the GitHub API directly from the browser, all third-party requests are routed through the Express backend.
+
+- **Rate Limit Mitigation**: Unauthenticated client-side requests share public IP addresses and exhaust GitHub's 60 requests/hour limit quickly. The backend allows optional personal access token configuration (increasing the limit to 5,000 requests/hour) and caches retrieved records in PostgreSQL with a configurable time-to-live (`DEVELOPER_CACHE_TTL_MS`, default 1 hour).
+- **Sub-50ms Response Times**: Subsequent lookups for a cached developer are served directly from the database without network calls to GitHub.
+- **Server-Side Aggregation**: Cumulative star calculations across hundreds of repositories and language breakdown computations are executed on the server, minimizing client bandwidth and processing overhead.
+
+### 2. Relational Database Modeling
+
+The data model uses PostgreSQL relational constraints with foreign keys and cascade delete rules:
+- Users own comparisons and pins.
+- Comparisons link to developers through a junction table (`comparison_devs`).
+- Repositories reference developers, and pins reference both repositories and users with a unique constraint on `(user_id, repository_id)` ensuring idempotent bookmarks.
+
+### 3. Graceful Database Resilience
+
+For evaluators running the project in environments where a local PostgreSQL service is not immediately running, the data layer includes an in-memory fallback adapter. If PostgreSQL is reachable, Prisma persists all data; if the database server is offline, the API remains functional for testing without throwing unhandled exceptions.
+
+---
+
+## Database Schema
 
 ```
-Increment 1: Project Foundation, Core Architecture & Database Schema  [CURRENT]
-Increment 2: User Authentication & Privacy Layer (Bcrypt, JWT, Middleware)
-Increment 3: GitHub API Ingestion Engine & Profile Dashboard (Caching & Metrics)
-Increment 4: Side-by-Side Comparison Engine (Multi-Dev Matrix & Visual Charts)
-Increment 5: Personal Curation (Pins, Notes, Tags), Mobile Polish & Final Docs
+users
+  id (String, PK)
+  email (String, Unique)
+  password_hash (String)
+  name (String, Optional)
+  created_at (DateTime)
+  updated_at (DateTime)
+
+developers
+  id (String, PK)
+  github_username (String, Unique, Indexed)
+  name (String, Optional)
+  avatar_url (String)
+  bio (String, Optional)
+  company (String, Optional)
+  location (String, Optional)
+  blog (String, Optional)
+  twitter_username (String, Optional)
+  followers (Int)
+  following (Int)
+  public_repos (Int)
+  public_gists (Int)
+  total_stars (Int)
+  fetched_at (DateTime)
+  created_at (DateTime)
+  updated_at (DateTime)
+
+repos
+  id (String, PK)
+  developer_id (String, FK -> developers.id, OnDelete: Cascade)
+  github_repo_id (Int, Optional)
+  name (String)
+  full_name (String)
+  description (String, Optional)
+  html_url (String)
+  stars (Int, Indexed Desc)
+  forks (Int)
+  watchers (Int)
+  open_issues (Int)
+  primary_language (String, Optional, Indexed)
+  default_branch (String)
+  is_fork (Boolean)
+  pushed_at (DateTime, Optional)
+  created_at (DateTime)
+  updated_at (DateTime)
+
+repository_languages
+  id (String, PK)
+  repository_id (String, FK -> repos.id, OnDelete: Cascade)
+  language (String, Indexed)
+  bytes (Int)
+
+comparisons
+  id (String, PK)
+  user_id (String, FK -> users.id, OnDelete: Cascade)
+  name (String)
+  description (String, Optional)
+  created_at (DateTime)
+  updated_at (DateTime)
+
+comparison_devs
+  id (String, PK)
+  comparison_id (String, FK -> comparisons.id, OnDelete: Cascade)
+  developer_id (String, FK -> developers.id, OnDelete: Cascade)
+  Unique: [comparison_id, developer_id]
+
+pins
+  id (String, PK)
+  user_id (String, FK -> users.id, OnDelete: Cascade)
+  repository_id (String, FK -> repos.id, OnDelete: Cascade)
+  note (String, Optional)
+  tags (String, JSON array format)
+  created_at (DateTime)
+  updated_at (DateTime)
+  Unique: [user_id, repository_id]
 ```
 
-| Increment | Scope | Deliverables |
-| :--- | :--- | :--- |
-| **Increment 1** | **Foundation & Data Model** | Monorepo structure, Express server, PostgreSQL Prisma schema, TypeScript types, Vite React client, Tailwind CSS shell, Health check endpoint. |
-| **Increment 2** | **Authentication & Privacy** | User registration, login, bcrypt password hashing, JWT session management, auth middleware, protected routes, user privacy isolation. |
-| **Increment 3** | **GitHub Engine & Profiles** | Octokit/REST integration, profile & repo caching in PostgreSQL, star aggregation, language breakdown, commit activity stats, profile dashboard UI. |
-| **Increment 4** | **Comparison View** | Multi-developer comparison computation, side-by-side metric tables, comparison charts, save named comparisons to database. |
-| **Increment 5** | **Curations, Polish & Submission** | Pin/unpin repos, notes, tags, filter bookmarks, responsive mobile optimizations, final demo verification. |
+Raw PostgreSQL DDL statements are also provided in `server/prisma/migrations/init.sql`.
 
 ---
 
-## 🗄️ Database Schema (PostgreSQL)
+## GitHub API Integration and Rate Limiting
 
-```
-+--------------------------------------------------------------+
-|                            users                             |
-+--------------------------------------------------------------+
-| id (PK) | email (UQ) | password_hash | name | created_at      |
-+--------------------------------------------------------------+
-           | 1:N                                     | 1:N
-           v                                         v
-+------------------------+             +------------------------+
-|      comparisons       |             |          pins          |
-+------------------------+             +------------------------+
-| id (PK)                |             | id (PK)                |
-| user_id (FK -> users)  |             | user_id (FK -> users)  |
-| name                   |             | repository_id (FK)     |
-| description            |             | note                   |
-| created_at             |             | tags (JSON / text)     |
-+------------------------+             +------------------------+
-           | 1:N                                     ^
-           v                                         | 1:N
-+------------------------+                           |
-|    comparison_devs     |                           |
-+------------------------+                           |
-| id (PK)                |                           |
-| comparison_id (FK)     |                           |
-| developer_id (FK)      |                           |
-+------------------------+                           |
-           | N:1                                     |
-           v                                         |
-+--------------------------------------------------------------+
-|                          developers                          |
-+--------------------------------------------------------------+
-| id (PK) | github_username (UQ) | avatar_url | followers      |
-| following | public_repos | total_stars | fetched_at          |
-+--------------------------------------------------------------+
-           | 1:N
-           v
-+--------------------------------------------------------------+
-|                            repos                             |
-+--------------------------------------------------------------+
-| id (PK) | developer_id (FK) | name | full_name | stars       |
-| forks | primary_language | pushed_at | html_url              |
-+--------------------------------------------------------------+
-           | 1:N
-           v
-+--------------------------------------------------------------+
-|                     repository_languages                     |
-+--------------------------------------------------------------+
-| id (PK) | repository_id (FK) | language | bytes              |
-+--------------------------------------------------------------+
-```
+The application interfaces with standard GitHub REST API endpoints:
+
+- `GET /users/{username}`: Developer profile, follower counts, and public repository counts.
+- `GET /users/{username}/repos`: Paginated repositories sorted by push date.
+- `GET /repos/{owner}/{repo}/languages`: Language byte distributions across top projects.
+- `GET /repos/{owner}/{repo}/commits`: Commit activity and recency indicators.
+
+Rate limit headers (`x-ratelimit-remaining`, `x-ratelimit-reset`) are checked on all requests. When rate limits are reached, the API returns a structured HTTP 429 response detailing the remaining reset time. Adding a personal access token via `GITHUB_TOKEN` increases limits from 60 to 5,000 requests per hour.
 
 ---
 
-## 🚀 Getting Started
+## Prerequisites
 
-### Prerequisites
-- **Node.js**: v18.0.0 or later (v20+ recommended)
-- **npm**: v9.0.0 or later
-- **PostgreSQL**: Local instance or cloud database (Supabase, Neon, AWS RDS, Docker)
+- **Node.js**: version 18.0.0 or later
+- **npm**: version 9.0.0 or later
+- **PostgreSQL**: local instance or cloud connection (Neon, Supabase, AWS RDS, Docker)
 
-### 1. Clone & Install Dependencies
+---
+
+## Installation and Setup
+
+### 1. Clone the repository and install root dependencies
 
 ```bash
-# In the project root directory
+git clone https://github.com/YOUR_GITHUB_USERNAME/stackpulse.git
+cd stackpulse
 npm install
+```
 
-# Install server and client packages
+### 2. Install workspace dependencies
+
+```bash
 npm run install:all
 ```
 
-### 2. Environment Configuration
+### 3. Environment configuration
 
-Copy the example environment files:
+Copy the template configuration files:
 
 ```bash
 # Root
@@ -154,14 +197,20 @@ cp .env.example .env
 cp server/.env.example server/.env
 ```
 
-Edit `server/.env` to point to your PostgreSQL database:
+Edit `server/.env` with your settings:
+
 ```env
+PORT=5000
+NODE_ENV=development
+CLIENT_URL=http://localhost:5173
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/stackpulse?schema=public"
-JWT_SECRET="your_strong_secret_key"
-GITHUB_TOKEN="" # Optional: adds 5,000 req/hr rate limit
+JWT_SECRET="replace_with_a_secure_random_string"
+JWT_EXPIRES_IN=7d
+GITHUB_TOKEN=""
+DEVELOPER_CACHE_TTL_MS=3600000
 ```
 
-### 3. Database Initialization (Prisma)
+### 4. Database initialization
 
 ```bash
 # Generate Prisma Client
@@ -169,107 +218,127 @@ npm run prisma:generate
 
 # Push schema to PostgreSQL database
 npm --prefix server run prisma:push
+
+# (Optional) Seed demo user and developers
+npm --prefix server run db:seed
 ```
 
-### 4. Run Development Environment
+---
 
-Start both the backend API and frontend Vite server concurrently:
+## Environment Variables
+
+| Variable | Scope | Description | Default |
+| :--- | :--- | :--- | :--- |
+| `PORT` | Server | Express HTTP server port | `5000` |
+| `NODE_ENV` | Server | Application environment (`development`, `production`) | `development` |
+| `CLIENT_URL` | Server | Permitted CORS origin | `http://localhost:5173` |
+| `DATABASE_URL` | Server | PostgreSQL connection string | `postgresql://...` |
+| `JWT_SECRET` | Server | Secret key used for signing JWTs | Default dev secret |
+| `JWT_EXPIRES_IN` | Server | Session token duration | `7d` |
+| `GITHUB_TOKEN` | Server | Optional GitHub Personal Access Token | `""` |
+| `DEVELOPER_CACHE_TTL_MS` | Server | Cache lifetime for developer records (milliseconds) | `3600000` (1 hour) |
+| `VITE_API_URL` | Client | Base URL prefix for frontend API calls | `/api` |
+
+---
+
+## Running the Application
+
+### Development Mode
+
+Run both the backend server and frontend client concurrently:
 
 ```bash
 npm run dev
 ```
 
-- **Frontend Client:** [http://localhost:5173](http://localhost:5173)
-- **Backend API:** [http://localhost:5000/api](http://localhost:5000/api)
-- **Health Check:** [http://localhost:5000/api/health](http://localhost:5000/api/health)
+- **Frontend Client**: http://localhost:5173
+- **Backend API**: http://localhost:5000/api
+- **Health Check**: http://localhost:5000/api/health
+
+### Production Build
+
+```bash
+# Build both packages
+npm run build
+
+# Start production server
+npm start
+```
 
 ---
 
-## 🔑 Environment Variables
+## API Endpoints
 
-| Variable | Scope | Description | Default |
-| :--- | :--- | :--- | :--- |
-| `PORT` | Server | Express HTTP server port | `5000` |
-| `NODE_ENV` | Server | Runtime environment (`development`, `production`) | `development` |
-| `CLIENT_URL` | Server | Allowed CORS origin | `http://localhost:5173` |
-| `DATABASE_URL` | Server | PostgreSQL connection string | `postgresql://...` |
-| `JWT_SECRET` | Server | Secret key for signing authentication tokens | `stackpulse_secret` |
-| `JWT_EXPIRES_IN` | Server | Token lifespan | `7d` |
-| `GITHUB_TOKEN` | Server | Optional GitHub PAT for 5,000 req/hr rate limit | `""` |
-| `DEVELOPER_CACHE_TTL_MS` | Server | Cache lifetime for fetched GitHub developer data | `3600000` (1h) |
-| `VITE_API_URL` | Client | API root prefix for frontend fetch calls | `/api` |
+### Health and Status
+- `GET /api/health`: Service uptime, environment, and database connection status.
+- `GET /api`: API catalog and route listing.
+
+### Authentication
+- `POST /api/auth/register`: Create user account. Body: `{ email, password, name? }`.
+- `POST /api/auth/login`: Authenticate and issue JWT. Body: `{ email, password }`.
+- `GET /api/auth/me`: Inspect current user session (requires `Authorization: Bearer <token>`).
+
+### Developers
+- `GET /api/developers/:username`: Retrieve full developer profile with computed aggregates and repositories.
+- `GET /api/developers/:username/repos`: Filtered and sorted repository list. Query params: `q`, `language`, `sortBy` (`stars`, `pushed`, `name`), `order`, `page`, `limit`.
+- `POST /api/developers/:username/refresh`: Force fresh retrieval from live GitHub API bypassing the cache.
+
+### Comparisons
+- `GET /api/comparisons/matrix?devs=user1,user2,...`: Compute side-by-side comparison matrix for two to five developers.
+- `POST /api/comparisons`: Save a named comparison (requires authentication). Body: `{ name, developers: string[], description? }`.
+- `GET /api/comparisons`: List saved comparisons for current user.
+- `DELETE /api/comparisons/:id`: Delete a saved comparison.
+
+### Pins and Notes
+- `GET /api/pins`: List user's pinned repositories. Query params: `tag`, `search`.
+- `GET /api/pins/check`: List repository full names pinned by the user.
+- `POST /api/pins`: Pin a repository with optional note and tags.
+- `POST /api/pins/toggle`: Toggle pinned state for a repository.
+- `PUT /api/pins/:id`: Update note or tags on an existing pin.
+- `DELETE /api/pins/:id`: Remove a pinned repository.
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 StackPulse/
-├── package.json              # Monorepo scripts (concurrent dev, builds)
-├── .gitignore                # Git ignore for node_modules, build, .env
-├── .env.example              # Documented environment template
-├── README.md                 # Project documentation & tech decisions
+├── package.json              # Monorepo build and development scripts
+├── .gitignore                # Ignored paths (node_modules, dist, .env)
+├── .env.example              # Environment variables template
+├── README.md                 # Project documentation
 │
-├── server/                   # Backend Express REST API
+├── server/                   # Express REST API backend
 │   ├── package.json
 │   ├── tsconfig.json
-│   ├── .env.example
 │   ├── prisma/
-│   │   ├── schema.prisma     # PostgreSQL schema (users, devs, repos, pins)
+│   │   ├── schema.prisma     # PostgreSQL data model
 │   │   └── migrations/
-│   │       └── init.sql      # Raw PostgreSQL DDL migration script
+│   │       └── init.sql      # Raw PostgreSQL DDL statements
 │   └── src/
-│       ├── app.ts            # Express application factory & middleware
-│       ├── index.ts          # Server entry point & connection lifecycle
-│       ├── config/           # Environment loader & settings
-│       ├── db/               # Prisma client wrapper & connection checker
-│       ├── middleware/       # Error handling, rate limiting, request logging
-│       ├── routes/           # REST endpoints (health, root)
-│       └── types/            # Shared TypeScript interfaces
+│       ├── app.ts            # Express application configuration
+│       ├── index.ts          # Server entrypoint and lifecycle handlers
+│       ├── config/           # Environment variable loader
+│       ├── db/               # Prisma client and connection diagnostics
+│       ├── middleware/       # Auth, rate limiting, logging, error handling
+│       ├── controllers/      # Route controllers (auth, dev, compare, pin)
+│       ├── services/         # Business logic, caching, GitHub client
+│       ├── routes/           # Express router definitions
+│       └── validators/       # Zod validation schemas
 │
-└── client/                   # Frontend React + TypeScript Client
+└── client/                   # Vite React frontend
     ├── package.json
     ├── tsconfig.json
-    ├── vite.config.ts        # Vite configuration with API proxy
-    ├── tailwind.config.js    # Tailwind styling system
-    ├── index.html
+    ├── vite.config.ts        # Vite configuration and API proxy
+    ├── tailwind.config.js    # Tailwind CSS configuration
     └── src/
-        ├── App.tsx           # Router & layout provider
-        ├── main.tsx          # DOM entry point
-        ├── index.css         # Tailwind & custom scrollbar styles
+        ├── App.tsx           # Application root and route configuration
+        ├── main.tsx          # DOM entrypoint
+        ├── context/          # AuthContext and PinContext providers
         ├── components/
         │   ├── common/       # Button, Card, Input, Badge components
-        │   └── layout/       # Responsive Navbar & Footer
+        │   └── layout/       # Navbar and Footer components
         ├── pages/            # Home, Profile, Compare, Curations, Auth
-        ├── services/         # Axios API client & endpoints
-        └── types/            # Frontend interfaces
+        ├── services/         # Axios API client wrapper
+        └── types/            # TypeScript interfaces
 ```
-
----
-
-## 📦 Release Notes
-
-### Increment 1: Project Foundation & Database Architecture
-- **Full-stack Monorepo Foundation**: Configured simultaneous dev scripts via `concurrently`, TypeScript type check scripts, and modular build pipelines.
-- **PostgreSQL Relational Schema**: Defined schema with cascade rules, indexes, and full support for `users`, `developers`, `repos`, `repository_languages`, `comparisons`, `comparison_devs`, and `pins`.
-- **Express REST API Core**: Initialized with Helmet security headers, CORS origin protection, request logging with response timing, standard rate limiter, and central error handler.
-- **Live Health Endpoint**: Implemented `/api/health` displaying service uptime, environment, and dynamic PostgreSQL connection status.
-- **Responsive React UI Shell**: Built clean dark-theme layout with responsive navigation, mobile drawer, interactive search hero, feature highlights, and roadmap visualizer.
-
-### Increment 2: User Authentication & GitHub Profile Dashboard Engine
-- **Robust User Authentication & Privacy**:
-  - Implemented bcrypt password hashing (10 salt rounds) and signed JWT session token generation (`POST /api/auth/register`, `POST /api/auth/login`).
-  - Added `requireAuth` and `optionalAuth` Express middleware inspecting `Authorization: Bearer <token>` headers (`GET /api/auth/me`).
-  - Implemented client-side `AuthContext` with persistent `localStorage` session handling and auto-login.
-  - Built functional `LoginPage` and `RegisterPage` with form validation, password visibility toggle, and error states.
-  - Enhanced `Navbar` with authenticated user profile badge and quick sign-out.
-- **GitHub Ingestion Engine & PostgreSQL Caching**:
-  - Direct integration with GitHub REST API (`/users/:username`, `/users/:username/repos`, `/repos/:owner/:repo/languages`).
-  - Intelligent PostgreSQL caching with TTL (`DEVELOPER_CACHE_TTL_MS`), serving sub-30ms responses and adding `X-Cache-Status` headers (`HIT` vs `MISS`).
-  - Automated calculation of developer aggregates: total stars across all repositories, total forks, commit velocity score, and active repositories ratio.
-  - Authentic language composition analysis with exact GitHub language color mapping and multi-segmented progress visualization.
-- **Interactive Developer Profile Dashboard**:
-  - Real-time developer search and inspection with loading skeletons and friendly 404/rate-limit recovery states.
-  - Interactive Repository Explorer featuring live text search, dynamic language filter dropdown, and sorting (Most Stars, Most Forks, Recently Pushed, Alphabetical).
-  - One-click cache refresh trigger (`POST /api/developers/:username/refresh`).
-

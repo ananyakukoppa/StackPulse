@@ -1,9 +1,17 @@
 import axios from 'axios';
-import { HealthResponse, User, DeveloperProfile, RepositorySummary } from '../types';
+import {
+  HealthResponse,
+  User,
+  DeveloperProfile,
+  RepositorySummary,
+  ComparisonMatrix,
+  SavedComparison,
+  PinItem,
+} from '../types';
 
 export const api = axios.create({
   baseURL: '/api',
-  timeout: 20000,
+  timeout: 25000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -79,6 +87,89 @@ export const apiService = {
   refreshDeveloper: async (username: string): Promise<DeveloperProfile> => {
     const response = await api.post(`/developers/${encodeURIComponent(username)}/refresh`);
     return response.data.data;
+  },
+
+  // Multi-Developer Comparison Engine
+  getComparisonMatrix: async (usernames: string[]): Promise<ComparisonMatrix> => {
+    const devs = usernames.join(',');
+    const response = await api.get('/comparisons/matrix', {
+      params: { devs },
+    });
+    return response.data.data;
+  },
+
+  saveComparison: async (data: {
+    name: string;
+    developers: string[];
+    description?: string;
+  }): Promise<SavedComparison> => {
+    const response = await api.post('/comparisons', data);
+    return response.data.data;
+  },
+
+  getSavedComparisons: async (): Promise<SavedComparison[]> => {
+    const response = await api.get('/comparisons');
+    return response.data.data;
+  },
+
+  deleteSavedComparison: async (id: string): Promise<void> => {
+    await api.delete(`/comparisons/${id}`);
+  },
+
+  // Personal Curation & Pinning
+  getUserPins: async (params?: { tag?: string; search?: string }): Promise<PinItem[]> => {
+    const response = await api.get('/pins', { params });
+    return response.data.data;
+  },
+
+  getPinnedRepoNames: async (): Promise<string[]> => {
+    const response = await api.get('/pins/check');
+    return response.data.data;
+  },
+
+  pinRepository: async (data: {
+    repository: {
+      name: string;
+      fullName: string;
+      htmlUrl: string;
+      developerUsername: string;
+      description?: string | null;
+      stars?: number;
+      forks?: number;
+      primaryLanguage?: string | null;
+    };
+    note?: string;
+    tags?: string[];
+  }): Promise<PinItem> => {
+    const response = await api.post('/pins', data);
+    return response.data.data;
+  },
+
+  togglePin: async (data: {
+    repository: {
+      name: string;
+      fullName: string;
+      htmlUrl: string;
+      developerUsername: string;
+      description?: string | null;
+      stars?: number;
+      forks?: number;
+      primaryLanguage?: string | null;
+    };
+    note?: string;
+    tags?: string[];
+  }): Promise<{ pinned: boolean; data?: PinItem }> => {
+    const response = await api.post('/pins/toggle', data);
+    return response.data;
+  },
+
+  updatePin: async (id: string, data: { note?: string | null; tags?: string[] }): Promise<PinItem> => {
+    const response = await api.put(`/pins/${id}`, data);
+    return response.data.data;
+  },
+
+  deletePin: async (id: string): Promise<void> => {
+    await api.delete(`/pins/${id}`);
   },
 };
 
