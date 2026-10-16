@@ -112,6 +112,16 @@ export class GitHubService {
       if (error.response?.status === 404) {
         return [];
       }
+      if (error.response?.status === 403 || error.response?.status === 429) {
+        const resetHeader = error.response.headers?.['x-ratelimit-reset'];
+        const resetMinutes = resetHeader
+          ? Math.ceil((parseInt(resetHeader, 10) * 1000 - Date.now()) / 60000)
+          : 60;
+        throw new AppError(
+          `GitHub API rate limit exceeded. Rate limit resets in approx ${resetMinutes} minutes. Add a GITHUB_TOKEN in .env for 5,000 req/hr.`,
+          429
+        );
+      }
       throw new AppError(
         `Failed to fetch repositories for '${username}': ${error.response?.data?.message || error.message}`,
         error.response?.status || 502

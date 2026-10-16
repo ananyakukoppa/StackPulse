@@ -25,8 +25,8 @@ export const Footer: React.FC = () => {
             </span>
           </div>
 
-          <div className="text-xs text-slate-600 text-center md:text-right">
-            Full-Stack Development Assignment • Increment 1 Foundation
+          <div className="text-xs text-slate-500 font-mono">
+            v1.0.0
           </div>
         </div>
       </div>

@@ -168,22 +168,50 @@ export const ProfilePage: React.FC = () => {
   }
 
   if (error || !profile) {
+    const isRateLimit = error?.toLowerCase().includes('rate limit');
+
     return (
-      <div className="max-w-3xl mx-auto px-4 py-20 w-full flex-1 text-center">
-        <div className="w-16 h-16 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center mx-auto mb-5">
-          <AlertTriangle className="w-8 h-8" />
+      <div className="max-w-2xl mx-auto px-4 py-16 w-full flex-1 text-center">
+        <div
+          className={`w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4 ${
+            isRateLimit
+              ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+              : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+          }`}
+        >
+          <AlertTriangle className="w-7 h-7" />
         </div>
-        <h2 className="text-2xl font-bold text-white">Developer Not Found</h2>
-        <p className="text-sm text-slate-400 max-w-md mx-auto mt-2 leading-relaxed">
-          {error || `We couldn't retrieve GitHub activity for @${username}.`}
+        <h2 className="text-xl font-bold text-white">
+          {isRateLimit ? 'GitHub API Rate Limit Reached' : 'Developer Not Found'}
+        </h2>
+        <p className="text-xs text-slate-400 max-w-md mx-auto mt-2 leading-relaxed">
+          {isRateLimit
+            ? 'GitHub allows 60 requests per hour without authentication. Add a GITHUB_TOKEN in server/.env for 5,000 requests/hour, or explore pre-cached developer profiles below.'
+            : error || `We could not retrieve GitHub activity for @${username}.`}
         </p>
+
+        {isRateLimit && (
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-xs">
+            <span className="text-slate-500">Explore pre-cached profiles:</span>
+            {['gaearon', 'torvalds', 'shadcn', 'yyx990803'].map((u) => (
+              <Link
+                key={u}
+                to={`/profile/${u}`}
+                className="px-2.5 py-1 rounded-md bg-slate-900 border border-slate-800 text-teal-400 hover:border-teal-500 font-mono text-xs"
+              >
+                @{u}
+              </Link>
+            ))}
+          </div>
+        )}
+
         <div className="mt-6 flex items-center justify-center gap-3">
           <Link to="/">
-            <Button variant="secondary" leftIcon={<ArrowLeft className="w-4 h-4" />}>
+            <Button variant="secondary" size="sm" leftIcon={<ArrowLeft className="w-4 h-4" />}>
               Back to Explore
             </Button>
           </Link>
-          <Button variant="primary" onClick={() => fetchProfile(true)} leftIcon={<RefreshCw className="w-4 h-4" />}>
+          <Button variant="primary" size="sm" onClick={() => fetchProfile(true)} leftIcon={<RefreshCw className="w-4 h-4" />}>
             Retry Lookup
           </Button>
         </div>
@@ -192,7 +220,20 @@ export const ProfilePage: React.FC = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex-1 space-y-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex-1 space-y-6">
+      {/* Rate limit fallback banner */}
+      {profile.rateLimitFallback && (
+        <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 flex items-center justify-between gap-3">
+          <span className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 shrink-0 text-amber-400" />
+            GitHub API rate limit reached (60/hr). Serving cached profile data.
+          </span>
+          <span className="text-[11px] text-slate-400 font-mono hidden sm:inline">
+            Add GITHUB_TOKEN in server/.env for 5,000 req/hr
+          </span>
+        </div>
+      )}
+
       {/* Top Breadcrumb & Actions Bar */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <Link to="/" className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-teal-400 transition-colors">
@@ -203,7 +244,7 @@ export const ProfilePage: React.FC = () => {
           {/* Cache Status Badge */}
           <div className="text-[11px] font-mono text-slate-400 bg-slate-900 px-3 py-1 rounded-lg border border-slate-800 flex items-center gap-1.5">
             <span className={`w-2 h-2 rounded-full ${profile.isCached ? 'bg-amber-400' : 'bg-emerald-400'}`} />
-            <span>{profile.isCached ? '⚡ Cached data' : '🟢 Live GitHub data'}</span>
+            <span>{profile.isCached ? 'Cached data' : 'Live GitHub data'}</span>
             <span className="text-slate-600">•</span>
             <span>{formatRelativeTime(profile.fetchedAt)}</span>
           </div>

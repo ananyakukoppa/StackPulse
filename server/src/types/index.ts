@@ -56,6 +56,7 @@ export interface DeveloperProfile {
   commitActivity: CommitActivitySummary;
   fetchedAt: Date | string;
   isCached: boolean;
+  rateLimitFallback?: boolean;
   repositories: RepositorySummary[];
 }
 

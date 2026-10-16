@@ -45,6 +45,8 @@ Thumbs.db
 prisma/*.db
 prisma/*.db-journal
 
-# Temporary folders
+# Temporary folders & cache
 tmp/
 temp/
+.cache/
+server/.cache/

@@ -1,7 +1,10 @@
+import fs from 'fs';
+import path from 'path';
 import { prisma, checkDatabaseConnection } from '../db/prisma';
 import { config } from '../config/environment';
 import { githubService, GitHubRepoResponse, GitHubUserResponse } from './github.service';
 import { DeveloperProfile, LanguageStat, RepositorySummary, CommitActivitySummary } from '../types';
+import { developerSnapshots } from '../data/developerSnapshots';
 
 // Canonical GitHub language colors for professional visual presentation
 const LANGUAGE_COLORS: Record<string, string> = {
@@ -31,8 +34,43 @@ const LANGUAGE_COLORS: Record<string, string> = {
   Lua: '#000080',
 };
 
-// In-memory developer cache fallback for offline testing
-const memoryDevCache = new Map<string, DeveloperProfile>();
+// File-persisted local developer cache for seamless offline and rate-limit resilience
+const cacheDir = path.resolve(__dirname, '../../.cache');
+const cacheFilePath = path.join(cacheDir, 'devs.json');
+
+function initLocalCache(): Map<string, DeveloperProfile> {
+  const map = new Map<string, DeveloperProfile>();
+  try {
+    if (fs.existsSync(cacheFilePath)) {
+      const content = fs.readFileSync(cacheFilePath, 'utf-8');
+      const data = JSON.parse(content);
+      for (const [k, v] of Object.entries(data)) {
+        map.set(k.toLowerCase(), v as DeveloperProfile);
+      }
+    }
+  } catch (err) {
+    console.warn('[DeveloperService] Could not read local file cache:', err);
+  }
+  return map;
+}
+
+const memoryDevCache = initLocalCache();
+
+function persistLocalCache(key: string, profile: DeveloperProfile) {
+  memoryDevCache.set(key.toLowerCase(), profile);
+  try {
+    if (!fs.existsSync(cacheDir)) {
+      fs.mkdirSync(cacheDir, { recursive: true });
+    }
+    const serialized: Record<string, DeveloperProfile> = {};
+    for (const [k, v] of memoryDevCache.entries()) {
+      serialized[k] = v;
+    }
+    fs.writeFileSync(cacheFilePath, JSON.stringify(serialized, null, 2), 'utf-8');
+  } catch (err) {
+    console.warn('[DeveloperService] Could not persist local file cache:', err);
+  }
+}
 
 export class DeveloperService {
   /**
@@ -77,11 +115,51 @@ export class DeveloperService {
       }
     }
 
-    // 2. Fetch live data from GitHub API
-    const [user, repos] = await Promise.all([
-      githubService.getUser(username),
-      githubService.getUserRepos(username, 100),
-    ]);
+    // 2. Fetch live data from GitHub API with rate limit and offline fallbacks
+    let user: GitHubUserResponse;
+    let repos: GitHubRepoResponse[];
+
+    try {
+      [user, repos] = await Promise.all([
+        githubService.getUser(username),
+        githubService.getUserRepos(username, 100),
+      ]);
+    } catch (fetchError: any) {
+      console.warn(`[DeveloperService] Live fetch failed for @${username}: ${fetchError.message}`);
+
+      // Fallback A: Check if any stale PostgreSQL record exists
+      if (dbStatus.connected) {
+        try {
+          const staleDev = await prisma.developer.findUnique({
+            where: { githubUsername: username },
+            include: {
+              repositories: {
+                include: { languages: true },
+                orderBy: { stars: 'desc' },
+              },
+            },
+          });
+          if (staleDev) {
+            return { ...this.formatCachedProfile(staleDev), rateLimitFallback: true };
+          }
+        } catch {}
+      }
+
+      // Fallback B: Check if any memory or file cache record exists
+      if (memoryDevCache.has(username)) {
+        return { ...memoryDevCache.get(username)!, isCached: true, rateLimitFallback: true };
+      }
+
+      // Fallback C: Check pre-seeded showcase snapshot
+      if (developerSnapshots[username]) {
+        const snapshot = { ...developerSnapshots[username], rateLimitFallback: true };
+        persistLocalCache(username, snapshot);
+        return snapshot;
+      }
+
+      // If no fallback is available, rethrow error
+      throw fetchError;
+    }
 
     // 3. Compute Aggregates: Total Stars & Forks
     const totalStars = repos.reduce((sum, r) => sum + (r.stargazers_count || 0), 0);
@@ -293,8 +371,8 @@ export class DeveloperService {
       repositories: formattedRepos,
     };
 
-    // Cache in memory for quick retrieval
-    memoryDevCache.set(username, profile);
+    // Cache in memory and local file store for persistent retrieval
+    persistLocalCache(username, profile);
 
     return profile;
   }
