@@ -6,7 +6,21 @@ export interface User {
   name?: string | null;
 }
 
-export interface Developer {
+export interface LanguageStat {
+  language: string;
+  bytes: number;
+  percentage: number;
+  color?: string;
+}
+
+export interface CommitActivitySummary {
+  recentCommitsCount: number;
+  lastPushedAt: string | null;
+  activeRepositoriesCount: number;
+  velocityScore: 'High' | 'Moderate' | 'Steady' | 'Low';
+}
+
+export interface DeveloperProfile {
   id: string;
   githubUsername: string;
   name: string | null;
@@ -21,13 +35,18 @@ export interface Developer {
   publicRepos: number;
   publicGists: number;
   totalStars: number;
+  totalForks: number;
+  languages: LanguageStat[];
+  commitActivity: CommitActivitySummary;
   fetchedAt: string;
-  repositories?: Repository[];
+  isCached: boolean;
+  repositories: RepositorySummary[];
 }
 
-export interface Repository {
+export interface RepositorySummary {
   id: string;
-  developerId: string;
+  developerId?: string;
+  githubRepoId?: number | null;
   name: string;
   fullName: string;
   description: string | null;
@@ -40,6 +59,7 @@ export interface Repository {
   defaultBranch: string;
   isFork: boolean;
   pushedAt: string | null;
+  size?: number;
 }
 
 export interface Comparison {
@@ -48,7 +68,7 @@ export interface Comparison {
   name: string;
   description: string | null;
   createdAt: string;
-  developers: Developer[];
+  developers: DeveloperProfile[];
 }
 
 export interface Pin {
@@ -58,7 +78,7 @@ export interface Pin {
   note: string | null;
   tags: string[];
   createdAt: string;
-  repository?: Repository;
+  repository?: RepositorySummary;
 }
 
 export interface HealthResponse {

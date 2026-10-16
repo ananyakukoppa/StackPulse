@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Search,
-  Sparkles,
   GitCompare,
   Bookmark,
   Star,
@@ -68,29 +67,23 @@ export const HomePage: React.FC = () => {
     {
       num: '1',
       title: 'Project Foundation & Database Architecture',
-      status: 'active',
+      status: 'completed',
       desc: 'Monorepo setup, Express REST API, PostgreSQL Prisma schema, TypeScript types, responsive UI layout shell.',
     },
     {
       num: '2',
-      title: 'User Authentication & Privacy Layer',
-      status: 'upcoming',
-      desc: 'User registration, secure password hashing, JWT sessions, route guards, and isolated user data privacy.',
+      title: 'Authentication & GitHub Profile Dashboard Engine',
+      status: 'active',
+      desc: 'Bcrypt hashing, JWT sessions, route guards, live GitHub API ingestion, PostgreSQL caching with TTL, star aggregation, and language breakdown.',
     },
     {
       num: '3',
-      title: 'GitHub API Engine & Profile Dashboard',
-      status: 'upcoming',
-      desc: 'Rate-limited GitHub data ingestion, DB caching, star aggregation, language breakdown, and commit metrics.',
-    },
-    {
-      num: '4',
       title: 'Side-by-Side Comparison Engine',
       status: 'upcoming',
       desc: 'Multi-developer comparison view, interactive comparison tables, radar/bar charts, and saved comparisons.',
     },
     {
-      num: '5',
+      num: '4',
       title: 'Personal Curation, Polish & Documentation',
       status: 'upcoming',
       desc: 'Pin favorite repos, add custom notes & tags, mobile responsive optimization, and technical choices report.',
@@ -100,25 +93,21 @@ export const HomePage: React.FC = () => {
   return (
     <div className="flex-1 flex flex-col">
       {/* Hero Section */}
-      <section className="relative overflow-hidden pt-16 pb-20 md:pt-24 md:pb-28 border-b border-slate-900">
-        {/* Glow backdrop effects */}
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-teal-500/10 blur-[130px] rounded-full pointer-events-none" />
-        <div className="absolute top-1/3 left-1/3 w-[300px] h-[250px] bg-blue-500/10 blur-[120px] rounded-full pointer-events-none" />
-
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
-          <Badge variant="teal" size="md" className="mb-6 glow-teal" icon={<Sparkles className="w-3.5 h-3.5" />}>
-            Full-Stack Developer Intelligence Platform
+      <section className="pt-14 pb-16 md:pt-20 md:pb-24 border-b border-slate-900 bg-gradient-to-b from-slate-950 to-slate-900/40">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <Badge variant="teal" size="sm" className="mb-4">
+            GitHub Developer Intelligence Platform
           </Badge>
 
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-white leading-tight">
-            Explore Developers. <br />
-            <span className="bg-gradient-to-r from-teal-400 via-teal-200 to-blue-400 bg-clip-text text-transparent">
-              Compare Metrics. Pin Great Code.
+          <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-white leading-tight">
+            Search GitHub Developers. <br />
+            <span className="text-teal-400">
+              Benchmark & Compare Metrics.
             </span>
           </h1>
 
-          <p className="mt-6 text-lg sm:text-xl text-slate-400 max-w-2xl mx-auto leading-relaxed">
-            StackPulse connects directly to the GitHub API with intelligent PostgreSQL caching, delivering instant developer profiles, head-to-head metric comparisons, and personal repository curation.
+          <p className="mt-4 text-base sm:text-lg text-slate-400 max-w-2xl mx-auto leading-relaxed">
+            StackPulse connects directly to the GitHub API with PostgreSQL caching. Inspect total stars, language distributions, and commit activity side-by-side.
           </p>
 
           {/* Search Bar */}
@@ -149,7 +138,7 @@ export const HomePage: React.FC = () => {
               {sampleDevelopers.map((dev) => (
                 <button
                   key={dev.username}
-                  onClick={() => setSearchTerm(dev.username)}
+                  onClick={() => navigate(`/profile/${dev.username}`)}
                   className="px-2.5 py-1 rounded-md bg-slate-900 border border-slate-800 text-slate-300 hover:text-teal-400 hover:border-teal-500/40 transition-all font-mono"
                 >
                   @{dev.username}
@@ -271,7 +260,7 @@ export const HomePage: React.FC = () => {
               </p>
             </div>
             <div className="text-xs text-teal-400 font-mono bg-teal-500/10 border border-teal-500/20 px-3 py-1.5 rounded-lg">
-              Increment 1 of 5 Ready
+              Increment 2 of 4 Ready
             </div>
           </div>
 
@@ -280,26 +269,37 @@ export const HomePage: React.FC = () => {
               <div
                 key={inc.num}
                 className={`p-4 rounded-xl border transition-all flex items-start gap-4 ${
-                  inc.status === 'active'
+                  inc.status === 'active' || inc.status === 'completed'
                     ? 'bg-slate-900/90 border-teal-500/30'
                     : 'bg-slate-900/40 border-slate-800/80 opacity-75'
                 }`}
               >
                 <div
                   className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm shrink-0 ${
-                    inc.status === 'active'
+                    inc.status === 'completed'
                       ? 'bg-teal-500 text-slate-950'
+                      : inc.status === 'active'
+                      ? 'bg-teal-500/20 text-teal-300 border border-teal-500/40'
                       : 'bg-slate-800 text-slate-400'
                   }`}
                 >
-                  {inc.status === 'active' ? <CheckCircle2 className="w-5 h-5" /> : inc.num}
+                  {inc.status === 'completed' ? (
+                    <CheckCircle2 className="w-5 h-5" />
+                  ) : (
+                    inc.num
+                  )}
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2.5">
                     <h4 className="text-sm font-semibold text-white">{inc.title}</h4>
+                    {inc.status === 'completed' && (
+                      <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">
+                        Completed
+                      </span>
+                    )}
                     {inc.status === 'active' && (
-                      <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-teal-500/20 text-teal-300">
-                        Completed in Increment 1
+                      <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-teal-500/20 text-teal-300 border border-teal-500/30">
+                        Current Increment
                       </span>
                     )}
                   </div>

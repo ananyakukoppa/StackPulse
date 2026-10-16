@@ -30,7 +30,3 @@ code, pre, .font-mono {
   background: #334155;
 }
 
-/* Subtle glow utility */
-.glow-teal {
-  box-shadow: 0 0 25px -5px rgba(20, 184, 166, 0.25);
-}

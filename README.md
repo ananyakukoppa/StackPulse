@@ -247,10 +247,29 @@ StackPulse/
 
 ---
 
-## 📦 Increment 1 Release Notes
+## 📦 Release Notes
 
+### Increment 1: Project Foundation & Database Architecture
 - **Full-stack Monorepo Foundation**: Configured simultaneous dev scripts via `concurrently`, TypeScript type check scripts, and modular build pipelines.
 - **PostgreSQL Relational Schema**: Defined schema with cascade rules, indexes, and full support for `users`, `developers`, `repos`, `repository_languages`, `comparisons`, `comparison_devs`, and `pins`.
 - **Express REST API Core**: Initialized with Helmet security headers, CORS origin protection, request logging with response timing, standard rate limiter, and central error handler.
 - **Live Health Endpoint**: Implemented `/api/health` displaying service uptime, environment, and dynamic PostgreSQL connection status.
 - **Responsive React UI Shell**: Built clean dark-theme layout with responsive navigation, mobile drawer, interactive search hero, feature highlights, and roadmap visualizer.
+
+### Increment 2: User Authentication & GitHub Profile Dashboard Engine
+- **Robust User Authentication & Privacy**:
+  - Implemented bcrypt password hashing (10 salt rounds) and signed JWT session token generation (`POST /api/auth/register`, `POST /api/auth/login`).
+  - Added `requireAuth` and `optionalAuth` Express middleware inspecting `Authorization: Bearer <token>` headers (`GET /api/auth/me`).
+  - Implemented client-side `AuthContext` with persistent `localStorage` session handling and auto-login.
+  - Built functional `LoginPage` and `RegisterPage` with form validation, password visibility toggle, and error states.
+  - Enhanced `Navbar` with authenticated user profile badge and quick sign-out.
+- **GitHub Ingestion Engine & PostgreSQL Caching**:
+  - Direct integration with GitHub REST API (`/users/:username`, `/users/:username/repos`, `/repos/:owner/:repo/languages`).
+  - Intelligent PostgreSQL caching with TTL (`DEVELOPER_CACHE_TTL_MS`), serving sub-30ms responses and adding `X-Cache-Status` headers (`HIT` vs `MISS`).
+  - Automated calculation of developer aggregates: total stars across all repositories, total forks, commit velocity score, and active repositories ratio.
+  - Authentic language composition analysis with exact GitHub language color mapping and multi-segmented progress visualization.
+- **Interactive Developer Profile Dashboard**:
+  - Real-time developer search and inspection with loading skeletons and friendly 404/rate-limit recovery states.
+  - Interactive Repository Explorer featuring live text search, dynamic language filter dropdown, and sorting (Most Stars, Most Forks, Recently Pushed, Alphabetical).
+  - One-click cache refresh trigger (`POST /api/developers/:username/refresh`).
+
